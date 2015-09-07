@@ -21,6 +21,7 @@
 #include <boost/atomic/detail/storage_type.hpp>
 #include <boost/atomic/detail/operations_fwd.hpp>
 #include <boost/atomic/capabilities.hpp>
+#include <boost/atomic/detail/ext_ops_gcc_x86.hpp>
 #if defined(BOOST_ATOMIC_DETAIL_X86_HAS_CMPXCHG8B) || defined(BOOST_ATOMIC_DETAIL_X86_HAS_CMPXCHG16B)
 #include <boost/atomic/detail/ops_gcc_x86_dcas.hpp>
 #include <boost/atomic/detail/ops_cas_based.hpp>
@@ -56,7 +57,7 @@ struct gcc_x86_operations_base
 };
 
 template< typename T, typename Derived >
-struct gcc_x86_operations :
+struct gcc_x86_operations_common :
     public gcc_x86_operations_base
 {
     typedef T storage_type;
@@ -109,13 +110,15 @@ struct gcc_x86_operations :
     }
 };
 
+template< std::size_t Size, bool Signed >
+struct gcc_x86_basic_operations;
+
 template< bool Signed >
-struct operations< 1u, Signed > :
-    public gcc_x86_operations< typename make_storage_type< 1u, Signed >::type, operations< 1u, Signed > >
+struct gcc_x86_basic_operations< 1u, Signed > :
+    public gcc_x86_operations_common< typename make_storage_type< 1u, Signed >::type, operations< 1u, Signed > >
 {
-    typedef gcc_x86_operations< typename make_storage_type< 1u, Signed >::type, operations< 1u, Signed > > base_type;
+    typedef gcc_x86_operations_common< typename make_storage_type< 1u, Signed >::type, operations< 1u, Signed > > base_type;
     typedef typename base_type::storage_type storage_type;
-    typedef typename make_storage_type< 1u, Signed >::aligned aligned_storage_type;
 
     static BOOST_FORCEINLINE storage_type fetch_add(storage_type volatile& storage, storage_type v, memory_order) BOOST_NOEXCEPT
     {
@@ -197,12 +200,18 @@ struct operations< 1u, Signed > :
 };
 
 template< bool Signed >
-struct operations< 2u, Signed > :
-    public gcc_x86_operations< typename make_storage_type< 2u, Signed >::type, operations< 2u, Signed > >
+struct operations< 1u, Signed > :
+    public gcc_x86_extended_operations< 1u, Signed, gcc_x86_basic_operations< 1u, Signed > >
 {
-    typedef gcc_x86_operations< typename make_storage_type< 2u, Signed >::type, operations< 2u, Signed > > base_type;
+    typedef typename make_storage_type< 1u, Signed >::aligned aligned_storage_type;
+};
+
+template< bool Signed >
+struct gcc_x86_basic_operations< 2u, Signed > :
+    public gcc_x86_operations_common< typename make_storage_type< 2u, Signed >::type, operations< 2u, Signed > >
+{
+    typedef gcc_x86_operations_common< typename make_storage_type< 2u, Signed >::type, operations< 2u, Signed > > base_type;
     typedef typename base_type::storage_type storage_type;
-    typedef typename make_storage_type< 2u, Signed >::aligned aligned_storage_type;
 
     static BOOST_FORCEINLINE storage_type fetch_add(storage_type volatile& storage, storage_type v, memory_order) BOOST_NOEXCEPT
     {
@@ -284,12 +293,18 @@ struct operations< 2u, Signed > :
 };
 
 template< bool Signed >
-struct operations< 4u, Signed > :
-    public gcc_x86_operations< typename make_storage_type< 4u, Signed >::type, operations< 4u, Signed > >
+struct operations< 2u, Signed > :
+    public gcc_x86_extended_operations< 2u, Signed, gcc_x86_basic_operations< 2u, Signed > >
 {
-    typedef gcc_x86_operations< typename make_storage_type< 4u, Signed >::type, operations< 4u, Signed > > base_type;
+    typedef typename make_storage_type< 2u, Signed >::aligned aligned_storage_type;
+};
+
+template< bool Signed >
+struct gcc_x86_basic_operations< 4u, Signed > :
+    public gcc_x86_operations_common< typename make_storage_type< 4u, Signed >::type, operations< 4u, Signed > >
+{
+    typedef gcc_x86_operations_common< typename make_storage_type< 4u, Signed >::type, operations< 4u, Signed > > base_type;
     typedef typename base_type::storage_type storage_type;
-    typedef typename make_storage_type< 4u, Signed >::aligned aligned_storage_type;
 
     static BOOST_FORCEINLINE storage_type fetch_add(storage_type volatile& storage, storage_type v, memory_order) BOOST_NOEXCEPT
     {
@@ -370,23 +385,36 @@ struct operations< 4u, Signed > :
 #undef BOOST_ATOMIC_DETAIL_CAS_LOOP
 };
 
+template< bool Signed >
+struct operations< 4u, Signed > :
+    public gcc_x86_extended_operations< 4u, Signed, gcc_x86_basic_operations< 4u, Signed > >
+{
+    typedef typename make_storage_type< 4u, Signed >::aligned aligned_storage_type;
+};
+
 #if defined(BOOST_ATOMIC_DETAIL_X86_HAS_CMPXCHG8B)
 
 template< bool Signed >
-struct operations< 8u, Signed > :
+struct gcc_x86_basic_operations< 8u, Signed > :
     public cas_based_operations< gcc_dcas_x86< Signed > >
 {
+};
+
+template< bool Signed >
+struct operations< 8u, Signed > :
+    public gcc_x86_extended_operations< 8u, Signed, gcc_x86_basic_operations< 8u, Signed > >
+{
+    typedef typename make_storage_type< 8u, Signed >::aligned aligned_storage_type;
 };
 
 #elif defined(__x86_64__)
 
 template< bool Signed >
-struct operations< 8u, Signed > :
-    public gcc_x86_operations< typename make_storage_type< 8u, Signed >::type, operations< 8u, Signed > >
+struct gcc_x86_basic_operations< 8u, Signed > :
+    public gcc_x86_operations_common< typename make_storage_type< 8u, Signed >::type, operations< 8u, Signed > >
 {
-    typedef gcc_x86_operations< typename make_storage_type< 8u, Signed >::type, operations< 8u, Signed > > base_type;
+    typedef gcc_x86_operations_common< typename make_storage_type< 8u, Signed >::type, operations< 8u, Signed > > base_type;
     typedef typename base_type::storage_type storage_type;
-    typedef typename make_storage_type< 8u, Signed >::aligned aligned_storage_type;
 
     static BOOST_FORCEINLINE storage_type fetch_add(storage_type volatile& storage, storage_type v, memory_order) BOOST_NOEXCEPT
     {
@@ -465,6 +493,13 @@ struct operations< 8u, Signed > :
     }
 
 #undef BOOST_ATOMIC_DETAIL_CAS_LOOP
+};
+
+template< bool Signed >
+struct operations< 8u, Signed > :
+    public gcc_x86_extended_operations< 8u, Signed, gcc_x86_basic_operations< 8u, Signed > >
+{
+    typedef typename make_storage_type< 8u, Signed >::aligned aligned_storage_type;
 };
 
 #endif
