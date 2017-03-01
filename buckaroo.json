@@ -1,0 +1,7 @@
+{
+  "name": "boost-atomic",
+  "dependencies": {
+    "boost-config": "1.63.0",
+    "boost-assert": "1.63.0"
+  }
+}
